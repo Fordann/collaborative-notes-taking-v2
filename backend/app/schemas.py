@@ -36,7 +36,7 @@ class SessionResponse(BaseModel):
     notes: list[StudentNoteResponse]
     results: list[MergeResultResponse]
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "use_enum_values": True}
 
 
 class SessionListItem(BaseModel):

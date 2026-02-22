@@ -17,7 +17,7 @@ from app.config import settings
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
 
-@router.post("/", response_model=SessionResponse, status_code=201)
+@router.post("", response_model=SessionResponse, status_code=201)
 async def create_session(data: SessionCreate, db: AsyncSession = Depends(get_db)):
     """Créer une nouvelle session de cours."""
     session = Session(
@@ -30,7 +30,7 @@ async def create_session(data: SessionCreate, db: AsyncSession = Depends(get_db)
     return session
 
 
-@router.get("/", response_model=list[SessionListItem])
+@router.get("", response_model=list[SessionListItem])
 async def list_sessions(db: AsyncSession = Depends(get_db)):
     """Lister toutes les sessions, ordonnées par date de création desc."""
     result = await db.execute(
