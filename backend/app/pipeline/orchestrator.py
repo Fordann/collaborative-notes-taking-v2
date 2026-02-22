@@ -17,7 +17,8 @@ def count_additions(enriched_md: str) -> int:
 
 def generate_summary(enriched_md: str) -> str:
     """Generate a brief summary of the additions."""
-    additions = re.findall(r'\[AJOUT\]\s*(.+?)(?:\n|$)', enriched_md)
+    # Match [AJOUT] with optional bold markers (**) in optional blockquotes (>)
+    additions = re.findall(r'(?:>\s*)?\*?\*?\[AJOUT\]\*?\*?\s*(.+?)(?:\n|$)', enriched_md)
     if not additions:
         return "Aucun ajout nécessaire."
     topics = [a[:80] for a in additions[:5]]

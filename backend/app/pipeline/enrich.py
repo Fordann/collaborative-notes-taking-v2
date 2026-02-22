@@ -14,8 +14,12 @@ Règles :
 - Insère chaque information manquante à l'endroit indiqué par "insert_after"
 - Adapte le style d'écriture à celui de l'étudiant (niveau de détail,
   vocabulaire, utilisation d'abréviations, longueur des phrases)
-- Marque CHAQUE ajout avec le préfixe "[AJOUT] " au début du paragraphe
-  pour que l'étudiant puisse distinguer ses notes des ajouts
+- Formate CHAQUE ajout en blockquote Markdown avec le préfixe **[AJOUT]** en gras,
+  suivi du contenu, et termine par la source en italique. Exemple :
+
+  > **[AJOUT]** L'information manquante rédigée dans le style de l'étudiant.
+  > *(Source : notes de Bob)*
+
 - Ne modifie JAMAIS le texte original de l'étudiant
 - Si tu ne trouves pas l'ancre exacte, insère à l'endroit le plus logique
 
