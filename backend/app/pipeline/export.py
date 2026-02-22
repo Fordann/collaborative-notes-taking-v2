@@ -91,6 +91,10 @@ def _style_odt_additions(odt_path: str) -> None:
     """Post-process an .odt file to style [AJOUT] paragraphs.
 
     Same visual logic as docx via ODF styles.
+    Avoids DOM tree rebuild — odfpy's insertBefore/removeChild crash on
+    Text nodes ('Text' object has no attribute 'qname'). Instead, we
+    re-style existing spans that Pandoc already created from markdown
+    bold/italic formatting.
     """
     doc = odf_load(odt_path)
 
@@ -115,49 +119,26 @@ def _style_odt_additions(odt_path: str) -> None:
     ))
     doc.automaticstyles.addElement(ajout_source_style)
 
-    # Collect paragraphs first to avoid modifying tree during iteration
-    paragraphs = list(doc.body.getElementsByType(P))
-
-    for elem in paragraphs:
+    for elem in doc.body.getElementsByType(P):
         text_content = _odf_get_text(elem)
 
         if "[AJOUT]" not in text_content:
             continue
 
-        # Build a replacement paragraph instead of clearing children in-place,
-        # because removeChild() fails on text nodes (AssertionError in odfpy).
-        before, _, after = text_content.partition("[AJOUT]")
+        # Apply green background to the paragraph
+        elem.setAttribute("stylename", ajout_para_style)
 
-        new_para = P(stylename=ajout_para_style)
-
-        if before.strip():
-            new_para.addText(before)
-
-        # [AJOUT] tag in bold green
-        tag_span = Span(stylename=ajout_tag_style)
-        tag_span.addText("[AJOUT]")
-        new_para.addElement(tag_span)
-
-        # Detect source note — Pandoc strips markdown italic markers
-        remaining = after
-        source_text = ""
-        source_start = remaining.rfind("(Source")
-        if source_start != -1 and remaining.rstrip().endswith(")"):
-            source_text = remaining[source_start:]
-            remaining = remaining[:source_start]
-
-        if remaining:
-            new_para.addText(remaining)
-
-        if source_text:
-            source_span = Span(stylename=ajout_source_style)
-            source_span.addText(source_text)
-            new_para.addElement(source_span)
-
-        # Replace old paragraph with new styled one
-        parent = elem.parentNode
-        parent.insertBefore(new_para, elem)
-        parent.removeChild(elem)
+        # Re-style existing child spans created by Pandoc:
+        # - **[AJOUT]** → bold span → override with green bold style
+        # - *(Source : ...)* → italic span → override with gray italic style
+        for child in elem.childNodes:
+            if not hasattr(child, "childNodes"):
+                continue  # skip text nodes
+            child_text = _odf_get_text(child)
+            if "[AJOUT]" in child_text:
+                child.setAttribute("stylename", ajout_tag_style)
+            elif "Source" in child_text:
+                child.setAttribute("stylename", ajout_source_style)
 
     doc.save(odt_path)
 
