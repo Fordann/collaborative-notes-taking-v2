@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
-    CLAUDE_MODEL: str = "claude-sonnet-4-5-20250514"
+    CLAUDE_MODEL: str = "claude-sonnet-4-6"
     DATABASE_URL: str = "postgresql+asyncpg://notesmerge:password@localhost:5432/notesmerge"
     UPLOAD_DIR: str = "/data/uploads"
     MAX_FILE_SIZE_MB: int = 10
