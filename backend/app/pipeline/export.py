@@ -115,30 +115,28 @@ def _style_odt_additions(odt_path: str) -> None:
     ))
     doc.automaticstyles.addElement(ajout_source_style)
 
-    # Walk all paragraphs in the document body
-    for elem in doc.body.getElementsByType(P):
+    # Collect paragraphs first to avoid modifying tree during iteration
+    paragraphs = list(doc.body.getElementsByType(P))
+
+    for elem in paragraphs:
         text_content = _odf_get_text(elem)
 
         if "[AJOUT]" not in text_content:
             continue
 
-        # Apply paragraph style
-        elem.setAttribute("stylename", ajout_para_style)
-
-        # Rebuild content with styled spans
+        # Build a replacement paragraph instead of clearing children in-place,
+        # because removeChild() fails on text nodes (AssertionError in odfpy).
         before, _, after = text_content.partition("[AJOUT]")
 
-        # Clear existing content
-        while elem.childNodes:
-            elem.removeChild(elem.childNodes[0])
+        new_para = P(stylename=ajout_para_style)
 
         if before.strip():
-            elem.addText(before)
+            new_para.addText(before)
 
         # [AJOUT] tag in bold green
         tag_span = Span(stylename=ajout_tag_style)
         tag_span.addText("[AJOUT]")
-        elem.addElement(tag_span)
+        new_para.addElement(tag_span)
 
         # Detect source note — Pandoc strips markdown italic markers
         remaining = after
@@ -149,12 +147,17 @@ def _style_odt_additions(odt_path: str) -> None:
             remaining = remaining[:source_start]
 
         if remaining:
-            elem.addText(remaining)
+            new_para.addText(remaining)
 
         if source_text:
             source_span = Span(stylename=ajout_source_style)
             source_span.addText(source_text)
-            elem.addElement(source_span)
+            new_para.addElement(source_span)
+
+        # Replace old paragraph with new styled one
+        parent = elem.parentNode
+        parent.insertBefore(new_para, elem)
+        parent.removeChild(elem)
 
     doc.save(odt_path)
 
