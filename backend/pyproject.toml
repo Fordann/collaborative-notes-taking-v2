@@ -1,0 +1,9 @@
+[project]
+name = "notes-merge-backend"
+version = "1.0.0"
+description = "NotesMerge - Backend API"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
