@@ -52,12 +52,12 @@ def _style_docx_additions(docx_path: str) -> None:
         run_tag.font.color.rgb = RGBColor(0x2E, 0x7D, 0x32)
         run_tag.font.size = Pt(11)
 
-        # Check if there's a source note at the end: *(Source : ...)*
+        # Detect source note at the end: (Source : ...) — Pandoc strips the
+        # markdown italic markers *, so we look for "(Source" directly.
         remaining = after
         source_text = ""
-        # Look for pattern like *(Source : notes de X)* at the end
-        source_start = remaining.rfind("*(")
-        if source_start != -1 and remaining.rstrip().endswith(")*"):
+        source_start = remaining.rfind("(Source")
+        if source_start != -1 and remaining.rstrip().endswith(")"):
             source_text = remaining[source_start:]
             remaining = remaining[:source_start]
 
@@ -74,6 +74,17 @@ def _style_docx_additions(docx_path: str) -> None:
             run_source.font.size = Pt(10)
 
     doc.save(docx_path)
+
+
+def _odf_get_text(element) -> str:
+    """Recursively extract plain text from an ODF element."""
+    text = ""
+    for node in element.childNodes:
+        if hasattr(node, "data"):
+            text += node.data
+        else:
+            text += _odf_get_text(node)
+    return text
 
 
 def _style_odt_additions(odt_path: str) -> None:
@@ -106,12 +117,7 @@ def _style_odt_additions(odt_path: str) -> None:
 
     # Walk all paragraphs in the document body
     for elem in doc.body.getElementsByType(P):
-        text_content = ""
-        for node in elem.childNodes:
-            if hasattr(node, "data"):
-                text_content += node.data
-            elif hasattr(node, "__str__"):
-                text_content += str(node)
+        text_content = _odf_get_text(elem)
 
         if "[AJOUT]" not in text_content:
             continue
@@ -134,11 +140,11 @@ def _style_odt_additions(odt_path: str) -> None:
         tag_span.addText("[AJOUT]")
         elem.addElement(tag_span)
 
-        # Check for source note
+        # Detect source note — Pandoc strips markdown italic markers
         remaining = after
         source_text = ""
-        source_start = remaining.rfind("*(")
-        if source_start != -1 and remaining.rstrip().endswith(")*"):
+        source_start = remaining.rfind("(Source")
+        if source_start != -1 and remaining.rstrip().endswith(")"):
             source_text = remaining[source_start:]
             remaining = remaining[:source_start]
 
