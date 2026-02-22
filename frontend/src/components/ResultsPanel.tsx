@@ -1,6 +1,9 @@
-import { Card, CardContent, Typography, Button, Chip, Box, Alert, Grid } from '@mui/material';
+import { Card, CardContent, Typography, Button, Chip, Box, Alert, Grid, CircularProgress } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import ReplayIcon from '@mui/icons-material/Replay';
 import type { MergeResult } from '../api/sessionsApi';
+import { useLaunchMergeMutation } from '../api/sessionsApi';
+import { useUIStore } from '../stores/uiStore';
 
 interface ResultsPanelProps {
   sessionId: string;
@@ -10,9 +13,35 @@ interface ResultsPanelProps {
 }
 
 export default function ResultsPanel({ sessionId, results, status, errorMessage }: ResultsPanelProps) {
+  const [launchMerge, { isLoading }] = useLaunchMergeMutation();
+  const showSnackbar = useUIStore((s) => s.showSnackbar);
+
+  const handleRetry = async () => {
+    try {
+      await launchMerge(sessionId).unwrap();
+      showSnackbar('Fusion relancée', 'info');
+    } catch (err: any) {
+      showSnackbar(err?.data?.detail || 'Erreur lors de la relance', 'error');
+    }
+  };
+
   if (status === 'error') {
     return (
-      <Alert severity="error" sx={{ mb: 3 }}>
+      <Alert
+        severity="error"
+        sx={{ mb: 3 }}
+        action={
+          <Button
+            color="inherit"
+            size="small"
+            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : <ReplayIcon />}
+            onClick={handleRetry}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Relance...' : 'Réessayer'}
+          </Button>
+        }
+      >
         <Typography variant="subtitle1" fontWeight="bold">
           Erreur lors de la fusion
         </Typography>

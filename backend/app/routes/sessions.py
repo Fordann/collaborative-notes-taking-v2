@@ -180,17 +180,25 @@ async def launch_merge(
     result = await db.execute(
         select(Session)
         .where(Session.id == session_id)
-        .options(selectinload(Session.notes))
+        .options(selectinload(Session.notes), selectinload(Session.results))
     )
     session = result.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=404, detail="Session introuvable")
     if session.status == SessionStatus.MERGING:
         raise HTTPException(status_code=409, detail="Fusion déjà en cours")
-    if session.status != SessionStatus.COLLECTING:
+    if session.status not in (SessionStatus.COLLECTING, SessionStatus.ERROR):
         raise HTTPException(status_code=400, detail="La session ne peut pas être fusionnée dans cet état")
     if len(session.notes) < 2:
         raise HTTPException(status_code=400, detail="Minimum 2 notes requises")
+
+    # On retry from error: clean up old results and reset status
+    if session.status == SessionStatus.ERROR:
+        for result in session.results:
+            await db.delete(result)
+        session.error_message = None
+        session.status = SessionStatus.COLLECTING
+        await db.commit()
 
     background_tasks.add_task(run_merge_pipeline, session_id)
     return {"message": "Fusion lancée"}
